@@ -5,7 +5,7 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from typing import List
-
+from i18n import tr
 
 # ──────────────────────────────────────────────
 # Common keyboards
@@ -15,40 +15,40 @@ def kb_remove():
     return ReplyKeyboardRemove()
 
 
-def kb_main_menu_client():
+def kb_main_menu_client(lang: str = "uz"):
     builder = ReplyKeyboardBuilder()
     builder.row(
-        KeyboardButton(text="✂️ Sartarosh topish"),
-        KeyboardButton(text="📅 Mening uchrashuvlarim"),
+        KeyboardButton(text=tr(lang, "main.find_barber")),
+        KeyboardButton(text=tr(lang, "main.my_appointments")),
     )
     builder.row(
-        KeyboardButton(text="📜 Tarix"),
-        KeyboardButton(text="📍 Yaqindagi sartaroshlar"),
+        KeyboardButton(text=tr(lang, "main.history")),
+        KeyboardButton(text=tr(lang, "main.nearby")),
     )
     builder.row(
-        KeyboardButton(text="👤 Mening profilim"),
-        KeyboardButton(text="ℹ️ Yordam"),
+        KeyboardButton(text=tr(lang, "main.profile")),
+        KeyboardButton(text=tr(lang, "main.help")),
     )
     return builder.as_markup(resize_keyboard=True)
 
 
-def kb_main_menu_barber():
+def kb_main_menu_barber(lang: str = "uz"):
     builder = ReplyKeyboardBuilder()
     builder.row(
-        KeyboardButton(text="📋 Uchrashuvlar"),
-        KeyboardButton(text="✂️ Xizmatlarim"),
+        KeyboardButton(text=tr(lang, "barber.appointments")),
+        KeyboardButton(text=tr(lang, "barber.services")),
     )
     builder.row(
-        KeyboardButton(text="🖼 Portfoliom"),
-        KeyboardButton(text="🚫 Qora ro'yxat"),
+        KeyboardButton(text=tr(lang, "barber.portfolio")),
+        KeyboardButton(text=tr(lang, "barber.blacklist")),
     )
     builder.row(
-        KeyboardButton(text="📊 Statistika"),
-        KeyboardButton(text="⚙️ Sozlamalar"),
+        KeyboardButton(text=tr(lang, "barber.stats")),
+        KeyboardButton(text=tr(lang, "barber.settings")),
     )
     builder.row(
-        KeyboardButton(text="📢 Reklama yuborish"),
-        KeyboardButton(text="🏪 Profilim"),
+        KeyboardButton(text=tr(lang, "barber.ads")),
+        KeyboardButton(text=tr(lang, "barber.profile")),
     )
     return builder.as_markup(resize_keyboard=True)
 

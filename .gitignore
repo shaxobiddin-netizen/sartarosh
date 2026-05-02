@@ -46,3 +46,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Bytecode caches
+**/__pycache__/
+*.pyc

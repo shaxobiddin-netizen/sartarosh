@@ -1,6 +1,6 @@
 """handlers/common.py — /start, registration, role selection"""
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ from keyboards import (
     kb_main_menu_client, kb_main_menu_barber, kb_remove
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from i18n import tr
 
 router = Router()
 
@@ -35,8 +36,17 @@ async def get_or_create_user(session: AsyncSession, tg_user) -> User:
 
 def main_menu_kb(user: User):
     if user.role == UserRole.BARBER:
-        return kb_main_menu_barber()
-    return kb_main_menu_client()
+        return kb_main_menu_barber(user.language)
+    return kb_main_menu_client(user.language)
+
+
+def kb_language_select():
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="🇺🇿 O'zbek", callback_data="lang:set:uz"),
+        InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang:set:ru"),
+    )
+    return builder.as_markup()
 
 
 async def send_welcome_photo(message: Message):
@@ -120,6 +130,26 @@ async def cmd_start(message: Message, session: AsyncSession, state: FSMContext):
     )
 
 
+@router.message(Command("lang"))
+async def cmd_lang(message: Message, session: AsyncSession):
+    user = await get_or_create_user(session, message.from_user)
+    await message.answer(tr(user.language, "lang.choose"), reply_markup=kb_language_select())
+
+
+@router.callback_query(F.data.startswith("lang:set:"))
+async def set_language(callback: CallbackQuery, session: AsyncSession):
+    lang = callback.data.split(":")[2]
+    user = await session.get(User, callback.from_user.id)
+    if not user:
+        await callback.answer("OK")
+        return
+    user.language = lang
+    await session.commit()
+    await callback.message.edit_text(tr(lang, "lang.set_ok"))
+    await callback.message.answer(tr(lang, "main.menu"), reply_markup=main_menu_kb(user))
+    await callback.answer()
+
+
 @router.message(RegistrationStates.waiting_for_phone, F.contact)
 async def received_phone(message: Message, session: AsyncSession, state: FSMContext):
     user = await get_or_create_user(session, message.from_user)
@@ -200,14 +230,14 @@ async def universal_cancel(callback: CallbackQuery, state: FSMContext, session: 
     await callback.answer()
 
 
-@router.message(F.text == "❌ Bekor qilish")
+@router.message(F.text.in_({"❌ Bekor qilish", "❌ Отмена"}))
 async def text_cancel(message: Message, state: FSMContext, session: AsyncSession):
     await state.clear()
     user = await session.get(User, message.from_user.id)
     await message.answer("❌ Bekor qilindi.", reply_markup=main_menu_kb(user))
 
 
-@router.message(F.text == "ℹ️ Yordam")
+@router.message(F.text.in_({"ℹ️ Yordam", "ℹ️ Помощь"}))
 async def help_handler(message: Message):
     await message.answer(
         "🤖 <b>Barber CRM Bot</b>\n\n"
@@ -230,7 +260,7 @@ class ProfileStates(StatesGroup):
 
 
 @router.message(Command("profile"))
-@router.message(F.text == "👤 Mening profilim")
+@router.message(F.text.in_({"👤 Mening profilim", "👤 Мой профиль"}))
 async def my_profile(message: Message, session: AsyncSession):
     user = await session.get(User, message.from_user.id)
     if not user:

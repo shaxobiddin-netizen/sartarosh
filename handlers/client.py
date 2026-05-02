@@ -67,7 +67,7 @@ def generate_available_slots(
 # Step 1: Find barbers
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "✂️ Sartarosh topish")
+@router.message(F.text.in_({"✂️ Sartarosh topish", "✂️ Найти парикмахера"}))
 async def find_barbers(message: Message, session: AsyncSession, state: FSMContext):
     await state.clear()
 
@@ -456,7 +456,7 @@ async def confirm_appointment_payment(callback: CallbackQuery, session: AsyncSes
 # My appointments (client view)
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "📅 Mening uchrashuvlarim")
+@router.message(F.text.in_({"📅 Mening uchrashuvlarim", "📅 Мои записи"}))
 async def my_appointments(message: Message, session: AsyncSession):
     stmt = (
         select(Appointment)
@@ -674,7 +674,7 @@ async def view_portfolio(callback: CallbackQuery, session: AsyncSession):
         )
 
 
-@router.message(F.text == "📜 Tarix")
+@router.message(F.text.in_({"📜 Tarix", "📜 История"}))
 async def appointment_history(message: Message, session: AsyncSession):
     from database.models import Review
 
@@ -727,7 +727,7 @@ async def appointment_history(message: Message, session: AsyncSession):
             )
 
 
-@router.message(F.text == "📍 Yaqindagi sartaroshlar")
+@router.message(F.text.in_({"📍 Yaqindagi sartaroshlar", "📍 Ближайшие мастера"}))
 async def nearby_barbers_request(message: Message):
     from keyboards import kb_request_location
     await message.answer(

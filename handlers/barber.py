@@ -88,7 +88,7 @@ async def ensure_barber(session: AsyncSession, user_id: int) -> tuple[User | Non
 # Barber main menu / profile
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "🏪 Profilim")
+@router.message(F.text.in_({"🏪 Profilim", "🏪 Мой профиль"}))
 async def barber_profile_menu(message: Message, session: AsyncSession):
     user, profile = await ensure_barber(session, message.from_user.id)
     if not user:
@@ -277,7 +277,7 @@ async def barber_work_end(message: Message, state: FSMContext, session: AsyncSes
 # Services
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "✂️ Xizmatlarim")
+@router.message(F.text.in_({"✂️ Xizmatlarim", "✂️ Мои услуги"}))
 @router.callback_query(F.data == "barber:list_services")
 async def barber_list_services(event, session: AsyncSession):
     if isinstance(event, CallbackQuery):
@@ -490,7 +490,7 @@ async def delete_service(callback: CallbackQuery, session: AsyncSession):
 # Appointments (barber view)
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "📋 Uchrashuvlar")
+@router.message(F.text.in_({"📋 Uchrashuvlar", "📋 Записи"}))
 async def barber_appointments(message: Message, session: AsyncSession):
     user, profile = await ensure_barber(session, message.from_user.id)
     if not user or not profile:
@@ -836,7 +836,7 @@ async def block_client(callback: CallbackQuery, session: AsyncSession):
 # Blacklist management from main menu
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "🚫 Qora ro'yxat")
+@router.message(F.text.in_({"🚫 Qora ro'yxat", "🚫 Черный список"}))
 async def blacklist_menu(message: Message, session: AsyncSession):
     user, profile = await ensure_barber(session, message.from_user.id)
     if not user or not profile:
@@ -1067,7 +1067,7 @@ async def blacklist_back(callback: CallbackQuery, session: AsyncSession):
 # Statistics
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "📊 Statistika")
+@router.message(F.text.in_({"📊 Statistika", "📊 Статистика"}))
 async def barber_stats(message: Message, session: AsyncSession):
     user, profile = await ensure_barber(session, message.from_user.id)
     if not user or not profile:
@@ -1233,7 +1233,7 @@ async def detailed_stats(callback: CallbackQuery, session: AsyncSession):
     await callback.answer()
 
 
-@router.message(F.text == "🖼 Portfoliom")
+@router.message(F.text.in_({"🖼 Portfoliom", "🖼 Портфолио"}))
 async def view_portfolio_menu(message: Message, session: AsyncSession):
     user, profile = await ensure_barber(session, message.from_user.id)
     if not profile:
@@ -1737,7 +1737,7 @@ async def reply_to_client_start(callback: CallbackQuery, state: FSMContext):
 # Advertisement / Promotional messages
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "📢 Reklama yuborish")
+@router.message(F.text.in_({"📢 Reklama yuborish", "📢 Реклама"}))
 async def advertisement_menu(message: Message, session: AsyncSession):
     user, profile = await ensure_barber(session, message.from_user.id)
     if not profile:
@@ -2333,3 +2333,12 @@ async def advertisement_cancel_callback(callback: CallbackQuery, state: FSMConte
         reply_markup=kb_advertisement_menu()
     )
     await callback.answer()
+
+
+
+
+
+
+
+
+

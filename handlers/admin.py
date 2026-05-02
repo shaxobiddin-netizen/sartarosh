@@ -118,7 +118,7 @@ async def admin_panel(message: Message, session: AsyncSession):
 # Foydalanuvchilar ro'yxati
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "👥 Foydalanuvchilar")
+@router.message(F.text.in_({"👥 Foydalanuvchilar", "👥 Пользователи"}))
 async def admin_users(message: Message, session: AsyncSession):
     if not is_admin(message.from_user.id):
         return
@@ -234,7 +234,7 @@ async def admin_users_back(callback: CallbackQuery, session: AsyncSession):
 # Sartaroshlar
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "✂️ Sartaroshlar")
+@router.message(F.text.in_({"✂️ Sartaroshlar", "✂️ Мастера"}))
 async def admin_barbers(message: Message, session: AsyncSession):
     if not is_admin(message.from_user.id):
         return
@@ -269,7 +269,7 @@ async def admin_barbers(message: Message, session: AsyncSession):
 # Uchrashuvlar
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "📅 Uchrashuvlar")
+@router.message(F.text.in_({"📅 Uchrashuvlar", "📅 Записи"}))
 async def admin_appointments(message: Message, session: AsyncSession):
     if not is_admin(message.from_user.id):
         return
@@ -313,7 +313,7 @@ async def admin_appointments(message: Message, session: AsyncSession):
 # Umumiy statistika
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "📊 Umumiy statistika")
+@router.message(F.text.in_({"📊 Umumiy statistika", "📊 Общая статистика"}))
 async def admin_stats(message: Message, session: AsyncSession):
     if not is_admin(message.from_user.id):
         return
@@ -376,7 +376,7 @@ class BroadcastState(StatesGroup):
     waiting_for_message = State()
 
 
-@router.message(F.text == "📢 Xabar yuborish")
+@router.message(F.text.in_({"📢 Xabar yuborish", "📢 Рассылка"}))
 async def broadcast_start(message: Message, state: FSMContext, session: AsyncSession):
     if not is_admin(message.from_user.id):
         return
@@ -435,7 +435,7 @@ async def broadcast_send(message: Message, state: FSMContext, session: AsyncSess
 # Admin paneldan chiqish
 # ──────────────────────────────────────────────
 
-@router.message(F.text == "🔙 Chiqish")
+@router.message(F.text.in_({"🔙 Chiqish", "🔙 Выход"}))
 async def admin_exit(message: Message, session: AsyncSession):
     if not is_admin(message.from_user.id):
         return
