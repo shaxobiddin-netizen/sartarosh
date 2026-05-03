@@ -118,6 +118,34 @@ _TRANSLATIONS = {
         "uz": "✅ Til saqlandi.",
         "ru": "✅ Язык сохранен.",
     },
+    "start.welcome": {
+        "uz": "👋 <b>Xush kelibsiz!</b>",
+        "ru": "👋 <b>Добро пожаловать!</b>",
+    },
+    "start.subtitle": {
+        "uz": "Quyidagi bo‘limlardan foydalaning:",
+        "ru": "Выберите раздел:",
+    },
+    "start.need_phone": {
+        "uz": "Botdan foydalanish uchun telefon raqamingizni yuboring:",
+        "ru": "Чтобы пользоваться ботом, отправьте номер телефона:",
+    },
+    "quick.lang": {
+        "uz": "🌍 Til",
+        "ru": "🌍 Язык",
+    },
+    "quick.profile": {
+        "uz": "👤 Profil",
+        "ru": "👤 Профиль",
+    },
+    "quick.help": {
+        "uz": "ℹ️ Yordam",
+        "ru": "ℹ️ Помощь",
+    },
+    "quick.back": {
+        "uz": "⬅️ Orqaga",
+        "ru": "⬅️ Назад",
+    },
 }
 
 

@@ -49,6 +49,16 @@ def kb_language_select():
     return builder.as_markup()
 
 
+def kb_quick_actions(lang: str = "uz"):
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text=tr(lang, "quick.lang"), callback_data="lang:open"),
+        InlineKeyboardButton(text=tr(lang, "quick.profile"), callback_data="quick:profile"),
+        InlineKeyboardButton(text=tr(lang, "quick.help"), callback_data="quick:help"),
+    )
+    return builder.as_markup()
+
+
 async def send_welcome_photo(message: Message):
     """Send welcome photo if BOT_WELCOME_PHOTO is set in config."""
     from config import config
@@ -75,8 +85,8 @@ async def cmd_start(message: Message, session: AsyncSession, state: FSMContext):
     # Check if user needs phone number
     if not user.phone:
         await message.answer(
-            f"👋 Assalomu alaykum, <b>{user.first_name}</b>!\n\n"
-            "Botdan foydalanish uchun telefon raqamingizni yuboring:",
+            f"👋 <b>{user.first_name}</b>\n\n"
+            f"{tr(user.language, 'start.need_phone')}",
             parse_mode="HTML",
             reply_markup=kb_request_phone()
         )
@@ -124,10 +134,47 @@ async def cmd_start(message: Message, session: AsyncSession, state: FSMContext):
     profile_card = "\n".join(profile_lines)
 
     await message.answer(
-        f"👋 Xush kelibsiz!\n\n{profile_card}",
+        f"{tr(user.language, 'start.welcome')}\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"{profile_card}\n"
+        f"━━━━━━━━━━━━━━━━━━\n\n"
+        f"{tr(user.language, 'start.subtitle')}",
         parse_mode="HTML",
         reply_markup=main_menu_kb(user)
     )
+    await message.answer(
+        " ",
+        reply_markup=kb_quick_actions(user.language)
+    )
+
+
+@router.callback_query(F.data == "lang:open")
+async def quick_open_lang(callback: CallbackQuery, session: AsyncSession):
+    user = await get_or_create_user(session, callback.from_user)
+    await callback.message.answer(tr(user.language, "lang.choose"), reply_markup=kb_language_select())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "quick:profile")
+async def quick_open_profile(callback: CallbackQuery, session: AsyncSession):
+    # Reuse /profile handler via direct call
+    msg = callback.message
+    msg.from_user = callback.from_user
+    await my_profile(msg, session)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "quick:help")
+async def quick_open_help(callback: CallbackQuery):
+    await callback.message.answer(
+        "🤖 <b>Barber CRM Bot</b>\n\n"
+        "Bu bot sartaroshlar va mijozlarni ulaydi.\n\n"
+        "• /start - Bosh menyu\n"
+        "• /lang - Til\n"
+        "• /profile - Profil",
+        parse_mode="HTML",
+    )
+    await callback.answer()
 
 
 @router.message(Command("lang"))
