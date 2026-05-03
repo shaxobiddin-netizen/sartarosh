@@ -71,6 +71,9 @@ def generate_available_slots(
 async def find_barbers(message: Message, session: AsyncSession, state: FSMContext):
     await state.clear()
 
+    user = await session.get(User, message.from_user.id)
+    lang = user.language if user else "uz"
+
     stmt = (
         select(BarberProfile, User)
         .join(User, User.id == BarberProfile.user_id)
@@ -90,13 +93,16 @@ async def find_barbers(message: Message, session: AsyncSession, state: FSMContex
         f"✂️ <b>Mavjud sartaroshlar</b> ({len(barbers)} ta):\n\n"
         "Quyidan sartarosh tanlang:",
         parse_mode="HTML",
-        reply_markup=kb_barber_list(barbers)
+        reply_markup=kb_barber_list(barbers, lang=lang)
     )
     await state.set_state(BookingStates.selecting_barber)
 
 
 @router.callback_query(BookingStates.selecting_barber, F.data.startswith("barber:"))
 async def barber_selected(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    u = await session.get(User, callback.from_user.id)
+    lang = u.language if u else "uz"
+
     barber_id = int(callback.data.split(":")[1])
     profile = await session.get(BarberProfile, barber_id)
     if not profile:
@@ -144,7 +150,13 @@ async def barber_selected(callback: CallbackQuery, state: FSMContext, session: A
         f"📝 {profile.bio or ''}{work_info}{rating_info}\n\n"
         "Xizmat tanlang:",
         parse_mode="HTML",
-        reply_markup=kb_service_list(services, profile.latitude, profile.longitude, barber_id=barber_id)
+        reply_markup=kb_service_list(
+            services,
+            profile.latitude,
+            profile.longitude,
+            barber_id=barber_id,
+            lang=lang,
+        )
     )
     await state.update_data(barber_id=barber_id, barber_name=name)
     await state.set_state(BookingStates.selecting_service)
@@ -157,6 +169,9 @@ async def barber_selected(callback: CallbackQuery, state: FSMContext, session: A
 
 @router.callback_query(BookingStates.selecting_service, F.data.startswith("service:"))
 async def service_selected(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    u = await session.get(User, callback.from_user.id)
+    lang = u.language if u else "uz"
+
     service_id = int(callback.data.split(":")[1])
     svc = await session.get(Service, service_id)
     if not svc:
@@ -203,7 +218,10 @@ async def service_selected(callback: CallbackQuery, state: FSMContext, session: 
         f"✅ Xizmat: <b>{svc.name}</b> — {svc.price:,} so'm\n\n"
         "📆 Sanani tanlang:",
         parse_mode="HTML",
-        reply_markup=kb_date_picker(available_dates)
+        reply_markup=kb_date_picker(
+            available_dates,
+            lang=lang,
+        )
     )
     await state.set_state(BookingStates.selecting_date)
     await callback.answer()

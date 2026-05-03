@@ -34,6 +34,26 @@ _TRANSLATIONS = {
         "uz": "❌ Bekor qilish",
         "ru": "❌ Отмена",
     },
+    "nav.back": {
+        "uz": "⬅️ Orqaga",
+        "ru": "⬅️ Назад",
+    },
+    "nav.home": {
+        "uz": "🏠 Bosh menyu",
+        "ru": "🏠 Главное меню",
+    },
+    "catalog.maps": {
+        "uz": "🗺 Google Maps",
+        "ru": "🗺 Google Maps",
+    },
+    "catalog.portfolio": {
+        "uz": "🖼 Portfolio",
+        "ru": "🖼 Портфолио",
+    },
+    "catalog.chat": {
+        "uz": "📩 Xabar",
+        "ru": "📩 Сообщение",
+    },
     "barber.appointments": {
         "uz": "📋 Uchrashuvlar",
         "ru": "📋 Записи",

@@ -5,7 +5,7 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from typing import List
-from i18n import tr
+from i18n import tr, LANG_UZ
 
 # ──────────────────────────────────────────────
 # Common keyboards
@@ -107,30 +107,36 @@ def kb_skip_cancel():
 # Barber keyboards
 # ──────────────────────────────────────────────
 
-def kb_barber_list(barbers: list):
+def kb_barber_list(barbers: list, lang: str = LANG_UZ):
     """barbers: list of (BarberProfile, User) tuples"""
     builder = InlineKeyboardBuilder()
     for profile, user in barbers:
         name = profile.salon_name or user.first_name
         rating_str = f"⭐ {profile.rating:.1f}" if profile.review_count > 0 else "⭐ Yangi"
+        addr = (profile.address or "").strip()
+        addr_short = (addr[:22] + "…") if len(addr) > 23 else addr
+        extra = f" | 📍 {addr_short}" if addr_short else ""
         builder.row(
             InlineKeyboardButton(
-                text=f"✂️ {name} ({rating_str})",
+                text=f"✂️ {name} • {rating_str}{extra}",
                 callback_data=f"barber:{profile.id}"
             )
         )
-    builder.row(InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel"))
+    builder.row(
+        InlineKeyboardButton(text=tr(lang, "nav.home"), callback_data="back"),
+        InlineKeyboardButton(text=tr(lang, "cancel"), callback_data="cancel"),
+    )
     return builder.as_markup()
 
 
-def kb_service_list(services: list, lat=None, lon=None, barber_id: int = None):
+def kb_service_list(services: list, lat=None, lon=None, barber_id: int = None, lang: str = LANG_UZ):
     """services: list of Service objects"""
     builder = InlineKeyboardBuilder()
     
     if lat is not None and lon is not None:
         builder.row(
             InlineKeyboardButton(
-                text="🗺 Google Maps orqali ko'rish",
+                text=tr(lang, "catalog.maps"),
                 url=f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
             )
         )
@@ -138,27 +144,31 @@ def kb_service_list(services: list, lat=None, lon=None, barber_id: int = None):
     if barber_id:
         builder.row(
             InlineKeyboardButton(
-                text="🖼 Portfolioni ko'rish (Rasmlar)",
+                text=tr(lang, "catalog.portfolio"),
                 callback_data=f"portfolio:{barber_id}"
             ),
             InlineKeyboardButton(
-                text="📩 Xabar yozish",
+                text=tr(lang, "catalog.chat"),
                 callback_data=f"chat:barber:{barber_id}"
             )
         )
 
     for svc in services:
+        price = f"{svc.price:,}" if svc.price is not None else "—"
         builder.row(
             InlineKeyboardButton(
-                text=f"{svc.name} — {svc.price:,} so'm ({svc.duration} min)",
+                text=f"{svc.name} • {price} so'm • {svc.duration} min",
                 callback_data=f"service:{svc.id}"
             )
         )
-    builder.row(InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back"))
+    builder.row(
+        InlineKeyboardButton(text=tr(lang, "nav.back"), callback_data="back"),
+        InlineKeyboardButton(text=tr(lang, "nav.home"), callback_data="back"),
+    )
     return builder.as_markup()
 
 
-def kb_date_picker(dates: list):
+def kb_date_picker(dates: list, lang: str = LANG_UZ):
     """dates: list of datetime.date objects"""
     builder = InlineKeyboardBuilder()
     days_uz = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"]
@@ -174,7 +184,10 @@ def kb_date_picker(dates: list):
             callback_data=f"date:{d.isoformat()}"
         )
     builder.adjust(3)
-    builder.row(InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back"))
+    builder.row(
+        InlineKeyboardButton(text=tr(lang, "nav.back"), callback_data="back"),
+        InlineKeyboardButton(text=tr(lang, "nav.home"), callback_data="back"),
+    )
     return builder.as_markup()
 
 
