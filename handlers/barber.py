@@ -1135,7 +1135,7 @@ async def barber_stats(message: Message, session: AsyncSession):
 
 @router.callback_query(F.data == "reviews:list")
 async def view_reviews(callback: CallbackQuery, session: AsyncSession):
-    """Show recent reviews for barber."""
+    """Show all reviews for barber with visibility toggle."""
     user, profile = await ensure_barber(session, callback.from_user.id)
     if not profile:
         await callback.answer("Profil topilmadi.", show_alert=True)
@@ -1144,12 +1144,9 @@ async def view_reviews(callback: CallbackQuery, session: AsyncSession):
     from database.models import Review
     stmt = (
         select(Review)
-        .where(
-            Review.barber_id == profile.id,
-            Review.is_visible == True
-        )
+        .where(Review.barber_id == profile.id)
         .order_by(Review.created_at.desc())
-        .limit(5)
+        .limit(10)
     )
     result = await session.execute(stmt)
     reviews = result.scalars().all()
@@ -1162,17 +1159,59 @@ async def view_reviews(callback: CallbackQuery, session: AsyncSession):
         await callback.answer()
         return
 
-    text = f"⭐ <b>So'nggi sharhlar ({len(reviews)} ta)</b>\n\n"
+    visible_count = sum(1 for r in reviews if r.is_visible)
+
+    text = f"⭐ <b>Barcha sharhlar</b> ({visible_count}/{len(reviews)} ko'rinadi)\n\n"
     for r in reviews:
         stars = "⭐" * r.rating
         client_name = r.client.first_name if r.client else "Mijoz"
-        comment = f"\n💬 {r.comment[:100]}..." if r.comment and len(r.comment) > 100 else f"\n💬 {r.comment}" if r.comment else ""
-        text += f"{stars} <b>{r.rating}</b> — {client_name}\n🗓 {r.created_at.strftime('%d.%m.%Y')}{comment}\n\n"
+        comment = f"\n💬 {r.comment[:80]}..." if r.comment and len(r.comment) > 80 else f"\n💬 {r.comment}" if r.comment else ""
+        eye = "👁" if r.is_visible else "🚫"
+        text += f"{eye} {stars} <b>{r.rating}</b> — {client_name}\n🗓 {r.created_at.strftime('%d.%m.%Y')}{comment}\n\n"
 
-    text += f"📈 Umumiy reyting: <b>{profile.rating:.1f}</b>"
+    text += f"📈 Umumiy reyting: <b>{profile.rating:.1f}</b>\n\n<i>Sharhni yashirish/ko'rsatish uchun quyidagi tugmalardan foydalaning:</i>"
 
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb_main_menu_barber())
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+
+    for r in reviews[:5]:
+        eye = "👁 Yashirish" if r.is_visible else "👁 Ko'rsatish"
+        builder.row(
+            InlineKeyboardButton(
+                text=f"{eye} #{r.id}",
+                callback_data=f"review:toggle:{r.id}"
+            )
+        )
+
+    builder.row(InlineKeyboardButton(text="🏠 Bosh menyu", callback_data="back"))
+
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=builder.as_markup())
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("review:toggle:"))
+async def toggle_review_visibility(callback: CallbackQuery, session: AsyncSession):
+    """Toggle is_visible for a review."""
+    review_id = int(callback.data.split(":")[2])
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        await callback.answer("Profil topilmadi.", show_alert=True)
+        return
+
+    from database.models import Review
+    review = await session.get(Review, review_id)
+    if not review or review.barber_id != profile.id:
+        await callback.answer("Sharh topilmadi.", show_alert=True)
+        return
+
+    review.is_visible = not review.is_visible
+    await session.commit()
+
+    status = "ko'rinadi" if review.is_visible else "yashirildi"
+    await callback.answer(f"Sharh {status}!")
+
+    # Refresh the reviews list
+    await view_reviews(callback, session)
 
 
 @router.callback_query(F.data == "stats:detailed")
@@ -2333,12 +2372,3 @@ async def advertisement_cancel_callback(callback: CallbackQuery, state: FSMConte
         reply_markup=kb_advertisement_menu()
     )
     await callback.answer()
-
-
-
-
-
-
-
-
-

@@ -54,6 +54,10 @@ _TRANSLATIONS = {
         "uz": "📩 Xabar",
         "ru": "📩 Сообщение",
     },
+    "catalog.reviews": {
+        "uz": "⭐ Sharhlar",
+        "ru": "⭐ Отзывы",
+    },
     "barber.appointments": {
         "uz": "📋 Uchrashuvlar",
         "ru": "📋 Записи",

@@ -152,6 +152,12 @@ def kb_service_list(services: list, lat=None, lon=None, barber_id: int = None, l
                 callback_data=f"chat:barber:{barber_id}"
             )
         )
+        builder.row(
+            InlineKeyboardButton(
+                text=tr(lang, "catalog.reviews"),
+                callback_data=f"reviews:{barber_id}"
+            )
+        )
 
     for svc in services:
         price = f"{svc.price:,}" if svc.price is not None else "—"

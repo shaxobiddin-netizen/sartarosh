@@ -163,6 +163,66 @@ async def barber_selected(callback: CallbackQuery, state: FSMContext, session: A
     await callback.answer()
 
 
+@router.callback_query(F.data.startswith("reviews:"))
+async def view_barber_reviews(callback: CallbackQuery, session: AsyncSession):
+    barber_id = int(callback.data.split(":")[1])
+    from database.models import Review
+    u = await session.get(User, callback.from_user.id)
+    lang = u.language if u else "uz"
+
+    stmt = (
+        select(Review)
+        .where(
+            Review.barber_id == barber_id,
+            Review.is_visible == True,
+        )
+        .order_by(Review.created_at.desc())
+        .limit(10)
+    )
+    result = await session.execute(stmt)
+    reviews = result.scalars().all()
+
+    profile = await session.get(BarberProfile, barber_id)
+    barber_name = profile.salon_name if profile and profile.salon_name else "Sartarosh"
+
+    if not reviews:
+        await callback.message.edit_text(
+            f"⭐ <b>{barber_name}</b> sharhlari\n\nHozircha sharhlar yo'q.",
+            parse_mode="HTML",
+            reply_markup=kb_service_list(
+                [s for s in profile.services if s.is_active] if profile else [],
+                profile.latitude if profile else None,
+                profile.longitude if profile else None,
+                barber_id=barber_id,
+                lang=lang,
+            ),
+        )
+        await callback.answer()
+        return
+
+    lines = [f"⭐ <b>{barber_name}</b> — so'nggi sharhlar:\n"]
+    for r in reviews:
+        stars = "⭐" * int(r.rating)
+        comment = (r.comment or "").strip()
+        comment_line = f"\n💬 <i>{comment}</i>" if comment else ""
+        date_str = r.created_at.strftime("%d.%m.%Y") if r.created_at else ""
+        lines.append(f"{stars}  <b>{date_str}</b>{comment_line}")
+
+    text = "\n\n".join(lines)
+    await callback.message.edit_text(
+        text,
+        parse_mode="HTML",
+        reply_markup=kb_service_list(
+            [s for s in profile.services if s.is_active] if profile else [],
+            profile.latitude if profile else None,
+            profile.longitude if profile else None,
+            barber_id=barber_id,
+            lang=lang,
+        ),
+    )
+    await callback.answer()
+
+
 # ──────────────────────────────────────────────
 # Step 2: Select service
 # ──────────────────────────────────────────────
