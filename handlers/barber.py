@@ -1134,6 +1134,41 @@ async def barber_stats(message: Message, session: AsyncSession):
     )
 
 
+@router.message(F.text.in_({"⚙️ Sozlamalar", "⚙️ Настройки"}))
+async def barber_settings(message: Message, session: AsyncSession):
+    """Settings menu for barber."""
+    user, profile = await ensure_barber(session, message.from_user.id)
+    if not user or not profile:
+        await message.answer("Bu bo'lim faqat sartaroshlar uchun.")
+        return
+
+    from keyboards import kb_barber_settings
+    await message.answer(
+        "⚙️ <b>Sozlamalar</b>\n\n"
+        "Kerakli bo'limni tanlang:",
+        parse_mode="HTML",
+        reply_markup=kb_barber_settings()
+    )
+
+
+@router.callback_query(F.data == "barber:settings")
+async def barber_settings_callback(callback: CallbackQuery, session: AsyncSession):
+    """Settings menu callback handler."""
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        await callback.answer("Profil topilmadi.", show_alert=True)
+        return
+
+    from keyboards import kb_barber_settings
+    await callback.message.edit_text(
+        "⚙️ <b>Sozlamalar</b>\n\n"
+        "Kerakli bo'limni tanlang:",
+        parse_mode="HTML",
+        reply_markup=kb_barber_settings()
+    )
+    await callback.answer()
+
+
 @router.callback_query(F.data == "reviews:list")
 async def view_reviews(callback: CallbackQuery, session: AsyncSession):
     """Show all reviews for barber with visibility toggle."""
