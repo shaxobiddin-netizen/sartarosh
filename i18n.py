@@ -150,6 +150,62 @@ _TRANSLATIONS = {
         "uz": "⬅️ Orqaga",
         "ru": "⬅️ Назад",
     },
+    "calendar.title": {
+        "uz": "📅 Kalendar ko'rinishi",
+        "ru": "📅 Календарь",
+    },
+    "calendar.has_appt": {
+        "uz": "🔴 Uchrashuv bor",
+        "ru": "🔴 Есть запись",
+    },
+    "calendar.no_appt": {
+        "uz": "⚪ Bo'sh",
+        "ru": "⚪ Свободно",
+    },
+    "stats.revenue": {
+        "uz": "📊 Daromad grafigi",
+        "ru": "📊 График доходов",
+    },
+    "stats.popular": {
+        "uz": "🏆 Mashhur xizmatlar",
+        "ru": "🏆 Популярные услуги",
+    },
+    "stats.growth": {
+        "uz": "📈 Mijozlar o'sishi",
+        "ru": "📈 Рост клиентов",
+    },
+    "stats.time_analysis": {
+        "uz": "⏰ Band vaqt analizi",
+        "ru": "⏰ Анализ загруженности",
+    },
+    "employee.title": {
+        "uz": "👥 Xodimlar boshqaruvi",
+        "ru": "👥 Управление сотрудниками",
+    },
+    "employee.add": {
+        "uz": "➕ Xodim qo'shish",
+        "ru": "➕ Добавить сотрудника",
+    },
+    "employee.list": {
+        "uz": "📋 Xodimlar ro'yxati",
+        "ru": "📋 Список сотрудников",
+    },
+    "autopromo.title": {
+        "uz": "🎁 Avtomatik promo kodlar",
+        "ru": "🎁 Автоматические промокоды",
+    },
+    "autopromo.birthday": {
+        "uz": "🎂 Tug'ilgan kun",
+        "ru": "🎂 День рождения",
+    },
+    "autopromo.loyalty": {
+        "uz": "⭐ Sodiqlik",
+        "ru": "⭐ Лояльность",
+    },
+    "ai.title": {
+        "uz": "🤖 AI yordamchi",
+        "ru": "🤖 AI помощник",
+    },
 }
 
 

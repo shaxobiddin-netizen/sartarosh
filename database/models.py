@@ -1,7 +1,7 @@
 import datetime
 from sqlalchemy import (
     Column, Integer, BigInteger, String, Boolean, DateTime, Date, Time,
-    Float, Text, ForeignKey, Enum as SAEnum
+    Float, Text, ForeignKey, Enum as SAEnum, UniqueConstraint
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 import enum
@@ -144,6 +144,7 @@ class BarberProfile(Base):
     promo_codes = relationship("PromoCode", back_populates="barber", lazy="selectin")
     reviews = relationship("Review", back_populates="barber", lazy="selectin")
     client_notes = relationship("ClientNote", back_populates="barber", lazy="selectin")
+    employees = relationship("Employee", back_populates="barber", lazy="selectin")
 
 
 class BarberSchedule(Base):
@@ -395,3 +396,96 @@ class Blacklist(Base):
     
     reason = Column(String(256), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+
+class Employee(Base):
+    """Xodimlar boshqaruvi - salon egalari uchun"""
+    __tablename__ = "employees"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barber_id = Column(Integer, ForeignKey("barber_profiles.id"), nullable=False)
+    """Salon egasi (barber) ID"""
+
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=True)
+    """Agar xodim botdan foydalansa"""
+
+    name = Column(String(128), nullable=False)
+    phone = Column(String(20), nullable=True)
+    position = Column(String(64), nullable=True)
+    """Lavozim: sartarosh, yordamchi, etc."""
+
+    commission_percent = Column(Integer, default=0, nullable=False)
+    """Komissiya foizi"""
+
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+    # relationships
+    barber = relationship("BarberProfile", back_populates="employees", lazy="selectin")
+    user = relationship("User", foreign_keys=[user_id], lazy="selectin")
+
+
+class FAQ(Base):
+    """AI yordamchi - avtomatik javoblar uchun"""
+    __tablename__ = "faqs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    keywords = Column(Text, nullable=False)
+    """Kalit so'zlar: 'narx,price,qancha'"""
+
+    question_uz = Column(Text, nullable=False)
+    question_ru = Column(Text, nullable=True)
+
+    answer_uz = Column(Text, nullable=False)
+    answer_ru = Column(Text, nullable=True)
+
+    is_active = Column(Boolean, default=True, nullable=False)
+    usage_count = Column(Integer, default=0, nullable=False)
+    """Qancha marta ishlatilgan"""
+
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+
+class AutoPromoCode(Base):
+    """Avtomatik promo kodlar sozlamalari"""
+    __tablename__ = "auto_promo_codes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barber_id = Column(Integer, ForeignKey("barber_profiles.id"), nullable=False)
+
+    promo_type = Column(String(32), nullable=False)
+    """birthday, loyalty, first_visit, etc."""
+
+    discount_percent = Column(Integer, nullable=False, default=10)
+    prefix = Column(String(20), nullable=True)
+    """Kod oldiga qo'shiladigan: BDAY, LOYAL, etc."""
+
+    days_valid = Column(Integer, default=30, nullable=False)
+    """Kod necha kun amal qiladi"""
+
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+
+class DailyRevenue(Base):
+    """Kunlik daromad hisoboti"""
+    __tablename__ = "daily_revenues"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    barber_id = Column(Integer, ForeignKey("barber_profiles.id"), nullable=False)
+
+    date = Column(Date, nullable=False)
+    total_appointments = Column(Integer, default=0, nullable=False)
+    completed_appointments = Column(Integer, default=0, nullable=False)
+    cancelled_appointments = Column(Integer, default=0, nullable=False)
+
+    total_revenue = Column(Integer, default=0, nullable=False)
+    """So'mda, bajarilgan uchrashuvlar summasi"""
+
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        # Har bir sartarosh uchun har kuni bitta yozuv
+        UniqueConstraint('barber_id', 'date', name='uix_daily_revenue_barber_date'),
+    )

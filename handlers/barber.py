@@ -2408,3 +2408,325 @@ async def advertisement_cancel_callback(callback: CallbackQuery, state: FSMConte
         reply_markup=kb_advertisement_menu()
     )
     await callback.answer()
+
+
+# ──────────────────────────────────────────────
+# Calendar View - Kalendar ko'rinishi
+# ──────────────────────────────────────────────
+
+@router.callback_query(F.data == "calendar:view")
+async def calendar_view_handler(callback: CallbackQuery, session: AsyncSession):
+    """Show calendar view with appointments."""
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        await callback.answer("Profil topilmadi.", show_alert=True)
+        return
+
+    import datetime
+    from keyboards import kb_calendar_view
+
+    today = datetime.date.today()
+
+    # Get appointments for this month
+    from sqlalchemy import extract
+    stmt = (
+        select(Appointment)
+        .where(Appointment.barber_id == profile.id)
+        .where(extract('month', Appointment.appointment_date) == today.month)
+        .where(extract('year', Appointment.appointment_date) == today.year)
+    )
+    result = await session.execute(stmt)
+    appointments = result.scalars().all()
+
+    await callback.message.edit_text(
+        f"📅 <b>Kalendar ko'rinishi</b>\n\n"
+        f"🔴 — Uchrashuv bor\n"
+        f"⚪ — Bo'sh kun",
+        parse_mode="HTML",
+        reply_markup=kb_calendar_view(today.year, today.month, appointments)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("calendar:day:"))
+async def calendar_day_details(callback: CallbackQuery, session: AsyncSession):
+    """Show appointments for selected day."""
+    date_str = callback.data.split(":")[2]
+    import datetime
+    selected_date = datetime.date.fromisoformat(date_str)
+
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        await callback.answer("Profil topilmadi.", show_alert=True)
+        return
+
+    stmt = (
+        select(Appointment)
+        .where(Appointment.barber_id == profile.id)
+        .where(Appointment.appointment_date == selected_date)
+        .order_by(Appointment.start_time)
+    )
+    result = await session.execute(stmt)
+    appointments = result.scalars().all()
+
+    if not appointments:
+        await callback.answer(f"{selected_date.strftime('%d.%m.%Y')} — uchrashuvlar yo'q", show_alert=True)
+        return
+
+    text = f"📅 <b>{selected_date.strftime('%d.%m.%Y')}</b> — {len(appointments)} ta uchrashuv\n\n"
+    for appt in appointments:
+        status_emoji = {"pending": "🕐", "confirmed": "✅", "completed": "✔️", "cancelled": "❌"}.get(appt.status.value, "❓")
+        client_name = appt.client.first_name if appt.client else "Mijoz"
+        text += f"{status_emoji} {appt.start_time.strftime('%H:%M')} — {client_name}\n"
+
+    await callback.message.edit_text(text, parse_mode="HTML")
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("calendar:prev:"))
+async def calendar_prev_month(callback: CallbackQuery, session: AsyncSession):
+    """Navigate to previous month."""
+    parts = callback.data.split(":")
+    year, month = int(parts[2]), int(parts[3])
+
+    import datetime
+    if month == 1:
+        year -= 1
+        month = 12
+    else:
+        month -= 1
+
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        return
+
+    from sqlalchemy import extract
+    from keyboards import kb_calendar_view
+
+    stmt = (
+        select(Appointment)
+        .where(Appointment.barber_id == profile.id)
+        .where(extract('month', Appointment.appointment_date) == month)
+        .where(extract('year', Appointment.appointment_date) == year)
+    )
+    result = await session.execute(stmt)
+    appointments = result.scalars().all()
+
+    await callback.message.edit_reply_markup(reply_markup=kb_calendar_view(year, month, appointments))
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("calendar:next:"))
+async def calendar_next_month(callback: CallbackQuery, session: AsyncSession):
+    """Navigate to next month."""
+    parts = callback.data.split(":")
+    year, month = int(parts[2]), int(parts[3])
+
+    import datetime
+    if month == 12:
+        year += 1
+        month = 1
+    else:
+        month += 1
+
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        return
+
+    from sqlalchemy import extract
+    from keyboards import kb_calendar_view
+
+    stmt = (
+        select(Appointment)
+        .where(Appointment.barber_id == profile.id)
+        .where(extract('month', Appointment.appointment_date) == month)
+        .where(extract('year', Appointment.appointment_date) == year)
+    )
+    result = await session.execute(stmt)
+    appointments = result.scalars().all()
+
+    await callback.message.edit_reply_markup(reply_markup=kb_calendar_view(year, month, appointments))
+    await callback.answer()
+
+
+# ──────────────────────────────────────────────
+# Extended Statistics - Kengaytirilgan statistika
+# ──────────────────────────────────────────────
+
+@router.callback_query(F.data == "stats:detailed")
+async def extended_stats_menu(callback: CallbackQuery, session: AsyncSession):
+    """Show extended statistics menu."""
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        await callback.answer("Profil topilmadi.", show_alert=True)
+        return
+
+    from keyboards import kb_extended_stats
+    await callback.message.edit_text(
+        "📊 <b>Kengaytirilgan statistika</b>\n\n"
+        "Kerakli bo'limni tanlang:",
+        parse_mode="HTML",
+        reply_markup=kb_extended_stats()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "stats:revenue_chart")
+async def stats_revenue_chart(callback: CallbackQuery, session: AsyncSession):
+    """Show revenue statistics."""
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        await callback.answer("Profil topilmadi.", show_alert=True)
+        return
+
+    import datetime
+    from sqlalchemy import func
+
+    # Last 7 days revenue
+    today = datetime.date.today()
+    week_ago = today - datetime.timedelta(days=7)
+
+    stmt = (
+        select(
+            Appointment.appointment_date,
+            func.sum(Service.price).label('revenue'),
+            func.count(Appointment.id).label('count')
+        )
+        .join(Service, Appointment.service_id == Service.id)
+        .where(Appointment.barber_id == profile.id)
+        .where(Appointment.status == AppointmentStatus.COMPLETED)
+        .where(Appointment.appointment_date >= week_ago)
+        .group_by(Appointment.appointment_date)
+        .order_by(Appointment.appointment_date)
+    )
+    result = await session.execute(stmt)
+    daily_stats = result.all()
+
+    total_revenue = sum(r.revenue or 0 for r in daily_stats)
+    total_appointments = sum(r.count for r in daily_stats)
+
+    text = f"📊 <b>So'nggi 7 kun daromadi</b>\n\n"
+    text += f"💰 <b>Jami daromad:</b> {total_revenue:,} so'm\n"
+    text += f"✂️ <b>Bajarilgan uchrashuvlar:</b> {total_appointments} ta\n"
+    text += f"📈 <b>O'rtacha narx:</b> {total_revenue // max(total_appointments, 1):,} so'm\n\n"
+
+    text += "📅 <b>Kunlik hisobot:</b>\n"
+    for stat in daily_stats:
+        emoji = "📈" if (stat.revenue or 0) > (total_revenue // max(len(daily_stats), 1)) else "📉"
+        text += f"{emoji} {stat.appointment_date.strftime('%d.%m')}: {stat.revenue or 0:,} so'm ({stat.count} ta)\n"
+
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb_extended_stats())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "stats:popular_services")
+async def stats_popular_services(callback: CallbackQuery, session: AsyncSession):
+    """Show most popular services statistics."""
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        await callback.answer("Profil topilmadi.", show_alert=True)
+        return
+
+    from sqlalchemy import func
+
+    stmt = (
+        select(
+            Service.name,
+            Service.price,
+            func.count(Appointment.id).label('count'),
+            func.sum(Service.price).label('total')
+        )
+        .join(Appointment, Appointment.service_id == Service.id)
+        .where(Service.barber_id == profile.id)
+        .where(Appointment.status == AppointmentStatus.COMPLETED)
+        .group_by(Service.id)
+        .order_by(func.count(Appointment.id).desc())
+        .limit(5)
+    )
+    result = await session.execute(stmt)
+    services = result.all()
+
+    if not services:
+        await callback.answer("Statistika mavjud emas.", show_alert=True)
+        return
+
+    text = "🏆 <b>Eng mashhur xizmatlar</b>\n\n"
+    medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+
+    for i, svc in enumerate(services):
+        medal = medals[i] if i < 5 else "•"
+        text += f"{medal} <b>{svc.name}</b>\n"
+        text += f"   💰 {svc.price:,} so'm × {svc.count} marta = {svc.total or 0:,} so'm\n\n"
+
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb_extended_stats())
+    await callback.answer()
+
+
+# ──────────────────────────────────────────────
+# Employee Management - Xodimlar boshqaruvi
+# ──────────────────────────────────────────────
+
+@router.callback_query(F.data == "employee:list")
+async def employee_list(callback: CallbackQuery, session: AsyncSession):
+    """List all employees for this barber/salon."""
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        await callback.answer("Profil topilmadi.", show_alert=True)
+        return
+
+    from database.models import Employee
+    stmt = select(Employee).where(Employee.barber_id == profile.id).where(Employee.is_active == True)
+    result = await session.execute(stmt)
+    employees = result.scalars().all()
+
+    from keyboards import kb_employee_management
+
+    if not employees:
+        await callback.message.edit_text(
+            "👥 <b>Xodimlar</b>\n\n"
+            "Hali xodimlar qo'shilmagan.\n"
+            "Xodim qo'shish uchun pastdagi tugmani bosing.",
+            parse_mode="HTML",
+            reply_markup=kb_employee_management()
+        )
+        await callback.answer()
+        return
+
+    text = f"👥 <b>Xodimlar ro'yxati</b> ({len(employees)} ta)\n\n"
+    for emp in employees:
+        status = "✅" if emp.is_active else "❌"
+        position = f" ({emp.position})" if emp.position else ""
+        commission = f" • {emp.commission_percent}% komissiya" if emp.commission_percent > 0 else ""
+        text += f"{status} <b>{emp.name}</b>{position}{commission}\n"
+        if emp.phone:
+            text += f"   📱 {emp.phone}\n"
+        text += "\n"
+
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb_employee_management())
+    await callback.answer()
+
+
+# ──────────────────────────────────────────────
+# Auto Promo Codes - Avtomatik promo kodlar
+# ──────────────────────────────────────────────
+
+@router.callback_query(F.data == "autopromo:settings")
+async def auto_promo_settings(callback: CallbackQuery, session: AsyncSession):
+    """Show auto promo code settings."""
+    user, profile = await ensure_barber(session, callback.from_user.id)
+    if not profile:
+        await callback.answer("Profil topilmadi.", show_alert=True)
+        return
+
+    from keyboards import kb_auto_promo_settings
+    await callback.message.edit_text(
+        "🎁 <b>Avtomatik promo kodlar</b>\n\n"
+        "Mijozlaringizga avtomatik promo kodlar yuborishni sozlang:\n\n"
+        "🎂 <b>Tug'ilgan kun</b> — mijoz tug'ilgan kunida avtomatik tabrik + promo kod\n"
+        "⭐ <b>Sodiqlik</b> — 5+ uchrashuvdan so'ng promo kod\n"
+        "🆕 <b>Birinchi tashrif</b> — yangi mijoz uchun xush kelibsiz promo\n"
+        "🔄 <b>Qaytgan mijoz</b> — uzoq vaqt kelmasa, qaytish uchun promo",
+        parse_mode="HTML",
+        reply_markup=kb_auto_promo_settings()
+    )
+    await callback.answer()

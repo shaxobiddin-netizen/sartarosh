@@ -14,7 +14,7 @@ from config import config
 from database.db import init_db, close_db, async_session_maker
 from database.models import Appointment, AppointmentStatus, User, NotificationLog, BarberProfile
 from middlewares import DbSessionMiddleware
-from handlers import common, barber, client, admin
+from handlers import common, barber, client, admin, ai_assistant
 
 logging.basicConfig(
     level=logging.INFO,
@@ -274,6 +274,7 @@ async def main():
     dp.include_router(common.router)
     dp.include_router(barber.router)
     dp.include_router(client.router)
+    dp.include_router(ai_assistant.router)
 
     # Initialize scheduler
     scheduler = AsyncIOScheduler()

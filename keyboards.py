@@ -322,6 +322,7 @@ def kb_my_services(services: list):
 
 
 def kb_barber_settings():
+    """Settings keyboard for barber."""
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(text="🏪 Profil tahrirlash", callback_data="barber:edit_profile"),
@@ -330,6 +331,14 @@ def kb_barber_settings():
     builder.row(
         InlineKeyboardButton(text="🕒 Ish soatlari", callback_data="barber:work_hours"),
         InlineKeyboardButton(text="📅 Ish kunlari", callback_data="barber:work_days"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="📆 Kalendar ko'rinishi", callback_data="calendar:view"),
+        InlineKeyboardButton(text="📊 Kengaytirilgan statistika", callback_data="stats:detailed"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="👥 Xodimlar boshqaruvi", callback_data="employee:list"),
+        InlineKeyboardButton(text="🎁 Avto promo kodlar", callback_data="autopromo:settings"),
     )
     builder.row(
         InlineKeyboardButton(text="💳 Obuna boshqaruvi", callback_data="barber:subscription"),
@@ -628,4 +637,132 @@ def kb_work_days(working_days: set):
         builder.button(text=text, callback_data=f"wd:toggle:{value}")
     builder.adjust(4)
     builder.row(InlineKeyboardButton(text="🔙 Orqaga", callback_data="barber:settings"))
+    return builder.as_markup()
+
+
+def kb_calendar_view(year: int, month: int, appointments: list):
+    """Kalendar ko'rinishi - uchrashuvlar bilan"""
+    from calendar import monthcalendar
+    import datetime
+
+    builder = InlineKeyboardBuilder()
+
+    # Oy va yil sarlavhasi
+    month_names = {
+        1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel",
+        5: "May", 6: "Iyun", 7: "Iyul", 8: "Avgust",
+        9: "Sentabr", 10: "Oktabr", 11: "Noyabr", 12: "Dekabr"
+    }
+    builder.row(InlineKeyboardButton(
+        text=f"📅 {month_names[month]} {year}",
+        callback_data="calendar:header"
+    ))
+
+    # Hafta kunlari
+    builder.row(
+        InlineKeyboardButton(text="Du", callback_data="calendar:none"),
+        InlineKeyboardButton(text="Se", callback_data="calendar:none"),
+        InlineKeyboardButton(text="Ch", callback_data="calendar:none"),
+        InlineKeyboardButton(text="Pa", callback_data="calendar:none"),
+        InlineKeyboardButton(text="Ju", callback_data="calendar:none"),
+        InlineKeyboardButton(text="Sh", callback_data="calendar:none"),
+        InlineKeyboardButton(text="Ya", callback_data="calendar:none"),
+    )
+
+    # Uchrashuvlar sanalarini olish
+    appt_dates = {a.appointment_date for a in appointments}
+
+    # Kalendar kunlari
+    cal = monthcalendar(year, month)
+    for week in cal:
+        row = []
+        for day in week:
+            if day == 0:
+                row.append(InlineKeyboardButton(text=" ", callback_data="calendar:none"))
+            else:
+                date = datetime.date(year, month, day)
+                has_appt = date in appt_dates
+                emoji = "🔴" if has_appt else "⚪"
+                row.append(InlineKeyboardButton(
+                    text=f"{emoji}{day}",
+                    callback_data=f"calendar:day:{date}"
+                ))
+        builder.row(*row)
+
+    # Navigatsiya
+    builder.row(
+        InlineKeyboardButton(text="⬅️ Oldingi oy", callback_data=f"calendar:prev:{year}:{month}"),
+        InlineKeyboardButton(text="🔙 Orqaga", callback_data="barber:appointments"),
+        InlineKeyboardButton(text="➡️ Keyingi oy", callback_data=f"calendar:next:{year}:{month}"),
+    )
+
+    return builder.as_markup()
+
+
+def kb_extended_stats():
+    """Kengaytirilgan statistika menyusi"""
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="📊 Daromad grafigi", callback_data="stats:revenue_chart"),
+        InlineKeyboardButton(text="🏆 Mashhur xizmatlar", callback_data="stats:popular_services"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="📈 Mijozlar o'sishi", callback_data="stats:client_growth"),
+        InlineKeyboardButton(text="⏰ Band vaqt analizi", callback_data="stats:time_analysis"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="📅 Kunlik hisobot", callback_data="stats:daily_report"),
+        InlineKeyboardButton(text="📆 Oylik hisobot", callback_data="stats:monthly_report"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="🔙 Orqaga", callback_data="barber:stats"),
+    )
+    return builder.as_markup()
+
+
+def kb_employee_management():
+    """Xodimlar boshqaruvi menyusi"""
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="➕ Xodim qo'shish", callback_data="employee:add"),
+        InlineKeyboardButton(text="👥 Xodimlar ro'yxati", callback_data="employee:list"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="📊 Xodim statistikasi", callback_data="employee:stats"),
+        InlineKeyboardButton(text="💰 Komissiya hisoboti", callback_data="employee:commission"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="🔙 Orqaga", callback_data="barber:settings"),
+    )
+    return builder.as_markup()
+
+
+def kb_auto_promo_settings():
+    """Avtomatik promo kodlar sozlamalari"""
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="🎂 Tug'ilgan kun", callback_data="autopromo:birthday"),
+        InlineKeyboardButton(text="⭐ Sodiqlik", callback_data="autopromo:loyalty"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="🆕 Birinchi tashrif", callback_data="autopromo:first_visit"),
+        InlineKeyboardButton(text="🔄 Qaytgan mijoz", callback_data="autopromo:returning"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="🔙 Orqaga", callback_data="barber:settings"),
+    )
+    return builder.as_markup()
+
+
+def kb_faq_admin():
+    """FAQ boshqaruvi uchun admin menyusi"""
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="➕ Savol qo'shish", callback_data="faq:add"),
+        InlineKeyboardButton(text="📋 Savollar ro'yxati", callback_data="faq:list"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="📊 Statistika", callback_data="faq:stats"),
+        InlineKeyboardButton(text="🤖 AI test", callback_data="faq:test"),
+    )
     return builder.as_markup()
