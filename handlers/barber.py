@@ -49,7 +49,7 @@ async def barber_entry(message: Message, session: AsyncSession):
     if uid not in config.BARBER_IDS and uid != config.ADMIN_ID:
         await message.answer(
             "⛔ Sizning ID ingiz sartaroshlar ro'yxatida yo'q.\n"
-            "Adminга murojaat qiling."
+            "Adminga murojaat qiling."
         )
         return
 
