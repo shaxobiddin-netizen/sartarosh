@@ -143,7 +143,7 @@ async def cmd_start(message: Message, session: AsyncSession, state: FSMContext):
         reply_markup=main_menu_kb(user)
     )
     await message.answer(
-        " ",
+        "Quyidagi tezkor tugmalardan foydalaning:",
         reply_markup=kb_quick_actions(user.language)
     )
 
