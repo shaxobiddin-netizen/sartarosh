@@ -13,7 +13,7 @@ from aiogram.types import BotCommand
 from config import config
 from database.db import init_db, close_db, async_session_maker
 from database.models import Appointment, AppointmentStatus, User, NotificationLog, BarberProfile
-from middlewares import DbSessionMiddleware
+from middlewares import DbSessionMiddleware, SecurityMiddleware
 from handlers import common, barber, client, admin, ai_assistant
 
 logging.basicConfig(
@@ -268,6 +268,7 @@ async def main():
 
     # Register middleware
     dp.update.middleware(DbSessionMiddleware())
+    dp.update.middleware(SecurityMiddleware(max_messages=25, window_seconds=60))  # Rate limiting
 
     # Register routers
     dp.include_router(admin.router)

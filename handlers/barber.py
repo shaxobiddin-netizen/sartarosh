@@ -365,11 +365,10 @@ async def service_price(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Bekor qilindi.", reply_markup=kb_main_menu_barber())
         return
-    try:
-        price = int(message.text.replace(" ", "").replace(",", ""))
-        assert price > 0
-    except (ValueError, AssertionError):
-        await message.answer("❗ Iltimos, to'g'ri narx kiriting (musbat son).")
+    from middlewares.security import validate_price
+    price = validate_price(message.text)
+    if price is None:
+        await message.answer("❗ Iltimos, to'g'ri narx kiriting (1 dan 10,000,000 so'mgacha).")
         return
 
     await state.update_data(price=price)
@@ -386,10 +385,9 @@ async def service_duration(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Bekor qilindi.", reply_markup=kb_main_menu_barber())
         return
-    try:
-        duration = int(message.text.strip())
-        assert 5 <= duration <= 480
-    except (ValueError, AssertionError):
+    from middlewares.security import validate_duration
+    duration = validate_duration(message.text)
+    if duration is None:
         await message.answer("❗ Iltimos, 5 dan 480 gacha bo'lgan daqiqa kiriting.")
         return
 
